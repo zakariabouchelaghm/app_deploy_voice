@@ -1,7 +1,8 @@
 fastapi
 uvicorn
 speechbrain
-pydub
-numpy
 torch
+torchaudio
+numpy
 soundfile
+librosa
