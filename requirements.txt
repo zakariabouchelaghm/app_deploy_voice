@@ -1,9 +1,5 @@
 fastapi
 uvicorn
-speechbrain
-numpy
-soundfile
-librosa
+torch
 transformers
-torch==2.1.0+cpu
-torchaudio==2.1.0+cpu
+torchaudio
