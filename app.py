@@ -1,12 +1,11 @@
 from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import JSONResponse
 from transformers import pipeline
-from pydub import AudioSegment
+import torchaudio
 import os
 
 app = FastAPI(title="Arabic Digit Recognition API")
 
-# Load the Whisper-Small Arabic ASR pipeline once at startup
+# Load Whisper-Small Arabic ASR
 asr_pipeline = pipeline(
     "automatic-speech-recognition",
     model="Salama1429/KalemaTech-Arabic-STT-ASR-based-on-Whisper-Small"
@@ -15,28 +14,32 @@ asr_pipeline = pipeline(
 @app.post("/predict")
 async def transcribe_audio(file: UploadFile = File(...)):
     try:
-        # Save uploaded .m4a file temporarily
-        tmp_m4a_path = f"/tmp/{file.filename}"
-        with open(tmp_m4a_path, "wb") as f:
+        tmp_input = f"/tmp/{file.filename}"
+
+        # Save uploaded file
+        with open(tmp_input, "wb") as f:
             f.write(await file.read())
 
-        # Convert m4a to wav
-        tmp_wav_path = f"/tmp/{os.path.splitext(file.filename)[0]}.wav"
-        audio = AudioSegment.from_file(tmp_m4a_path, format="m4a")
-        audio.export(tmp_wav_path, format="wav")
+        # Load audio with torchaudio
+        waveform, sr = torchaudio.load(tmp_input)
+
+        # Resample to 16 kHz if needed
+        if sr != 16000:
+            resampler = torchaudio.transforms.Resample(sr, 16000)
+            waveform = resampler(waveform)
+
+        # Save as wav
+        tmp_wav = f"/tmp/{os.path.splitext(file.filename)[0]}.wav"
+        torchaudio.save(tmp_wav, waveform, 16000)
 
         # Run ASR
-        transcription = asr_pipeline(tmp_wav_path)["text"]
+        transcription = asr_pipeline(tmp_wav)["text"]
 
-        # Clean up temp files
-        os.remove(tmp_m4a_path)
-        os.remove(tmp_wav_path)
+        # Clean up
+        os.remove(tmp_input)
+        os.remove(tmp_wav)
 
-        return JSONResponse(content={"transcription": transcription})
+        return {"transcription": transcription}
 
     except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
-
-@app.get("/")
-async def root():
-    return {"message": "Arabic ASR server running!"}
+        return {"error": str(e)}
