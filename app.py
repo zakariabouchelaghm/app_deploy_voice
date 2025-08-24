@@ -10,7 +10,7 @@ app = FastAPI(title="Arabic Digit Recognition API")
 asr_model = EncoderASR.from_hparams(source="speechbrain/asr-wav2vec2-commonvoice-14-ar", savedir="pretrained_models/asr-wav2vec2-commonvoice-14-ar")
 @app.post("/predict")
 async def transcribe_audio(file: UploadFile = File(...)):
-   tmp_input = "/tmp/input_audio.m4a"
+    tmp_input = "/tmp/input_audio.m4a"
     with open(tmp_input, "wb") as f:
         f.write(await file.read())
 
